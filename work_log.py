@@ -2,10 +2,18 @@ import streamlit as st
 import pandas as pd
 from docx import Document
 from io import BytesIO
+from datetime import datetime
 
 st.set_page_config(page_title="Daily Work Log", layout="centered")
 
 st.title("🗓️ Daily Work Log")
+
+# Display today's date and current time
+current_time = datetime.now()
+st.markdown(f"**📅 Date:** {current_time.strftime('%A, %B %d, %Y')}")
+st.markdown(f"**⏰ Time:** {current_time.strftime('%I:%M %p')}")
+
+st.divider()
 
 # Define work hours
 hours = [f"{h}:00 {'AM' if h < 12 else 'PM'}" for h in range(8, 18)]
@@ -59,7 +67,7 @@ with col1:
     st.download_button(
         "📤 Download as CSV",
         data=convert_df_to_csv(log_df),
-        file_name="daily_work_log.csv",
+        file_name=current_time.strftime('%A, %B %d, %Y') + "_" + "daily_work_log.csv",
         mime="text/csv",
     )
 
@@ -68,7 +76,7 @@ with col2:
     st.download_button(
         "📄 Download as Word Document",
         data=docx_file,
-        file_name="daily_work_log.docx",
+        file_name=current_time.strftime('%A, %B %d, %Y') + "_" + "daily_work_log.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
 
