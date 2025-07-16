@@ -2,17 +2,15 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, date
 
+from settings import get_time_range
 from log_utils import initialize_log, get_log_records
 from export_utils import convert_df_to_csv, convert_df_to_docx
 from email_utils import send_email_with_attachments
 
-# ----------------------------------------------------------
-# App Config
-# ----------------------------------------------------------
-st.set_page_config(page_title="Daily Work Log", layout="wide")
-st.title("🗓️ Daily Work Log")
+st.set_page_config(page_title="WorkLogger", layout="wide")
+st.title("🗓️ WorkLogger v1.0")
 
-# Load Email Config
+# Email config from secrets or defaults
 _email_cfg = st.secrets.get("email", {}) if hasattr(st, "secrets") else {}
 SMTP_SERVER = _email_cfg.get("server", "smtp.gmail.com")
 SMTP_PORT = int(_email_cfg.get("port", 465))
@@ -23,9 +21,7 @@ DEFAULT_TO = _email_cfg.get("default_to", "")
 DEFAULT_CC = _email_cfg.get("default_cc", "")
 DEFAULT_SUBJECT_TEMPLATE = _email_cfg.get("default_subject", "{date_str} Daily Work Log")
 
-# ----------------------------------------------------------
-# Date & Current Time
-# ----------------------------------------------------------
+# Date input
 log_date = st.date_input("📆 Select the date to log for", value=date.today())
 file_date_str = log_date.strftime('%A_%B_%d_%Y')
 current_time = datetime.now()
@@ -33,18 +29,15 @@ current_time = datetime.now()
 st.write(f"**📅 Logging for:** `{file_date_str}` | **⏰ Current Time:** `{current_time.strftime('%I:%M %p')}`")
 st.divider()
 
-# ----------------------------------------------------------
-# Layout with Two Columns
-# ----------------------------------------------------------
-left_col, right_col = st.columns([2, 1])  # Left = form, Right = download/email
+# Get time range & hours from settings.py
+start_hour, end_hour, hours = get_time_range()
 
-# ----------------------------------------------------------
-# Left Column: Daily Work Log Form
-# ----------------------------------------------------------
+left_col, right_col = st.columns([2, 1])
+
 with left_col:
     st.header("📝 Fill Your Daily Work Log")
-    hours = [f"{h}:00 {'AM' if h < 12 else 'PM'}" for h in range(8, 18)]
-    log_key = f"structured_log_{log_date}"
+    log_key = f"structured_log_{log_date}_{start_hour}_{end_hour}"
+
     initialize_log(log_key, hours)
 
     for hour in hours:
@@ -56,28 +49,65 @@ with left_col:
             entry["tasks"] = st.text_area("✅ Tasks Worked On", key=f"{log_key}_{hour}_tasks")
             entry["general"] = st.text_area("🗒️ General Information", key=f"{log_key}_{hour}_general")
 
-# ----------------------------------------------------------
-# Convert data for export and email
-# ----------------------------------------------------------
 log_df = pd.DataFrame(get_log_records(log_key, hours))
+
+def format_log_as_list(df):
+    lines = []
+    for _, row in df.iterrows():
+        lines.append(f"Time: {row['Time']}")
+        lines.append(f"  Meeting: {row['Meeting']}")
+        if row['Meeting'] == "Yes" and row['Meeting Information'].strip():
+            lines.append(f"  Meeting Info: {row['Meeting Information']}")
+        if row['Tasks'].strip():
+            lines.append(f"  Tasks: {row['Tasks']}")
+        if row['General Information'].strip():
+            lines.append(f"  General Info: {row['General Information']}")
+        lines.append("")
+    return "\n".join(lines)
+
+log_list_text = format_log_as_list(log_df)
+list_bytes = log_list_text.encode("utf-8")
+
 csv_bytes = convert_df_to_csv(log_df)
 docx_io = convert_df_to_docx(log_df, log_date)
 docx_bytes = docx_io.getvalue()
 
-# ----------------------------------------------------------
-# Right Column: Download & Email Options
-# ----------------------------------------------------------
 with right_col:
-    st.header("📥 Download & Share")
+    preview_mode = st.radio("Choose preview format:", options=["Table", "List"])
 
-    st.subheader("Download Files")
-    st.download_button("📤 Download as CSV", data=csv_bytes,
-                       file_name=f"{file_date_str}_daily_work_log.csv", mime="text/csv")
-    st.download_button("📄 Download as Word Document", data=docx_bytes,
-                       file_name=f"{file_date_str}_daily_work_log.docx",
-                       mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    if preview_mode == "Table":
+        st.subheader("📊 Log Preview (Table)")
+        st.dataframe(log_df)
+    else:
+        st.subheader("📋 Log Preview (List)")
+        st.text_area("Detailed Log List Preview", value=log_list_text, height=400)
 
     st.divider()
+    st.header("📥 Download & Share")
+
+    if preview_mode == "Table":
+        st.download_button(
+            "📤 Download as CSV",
+            data=csv_bytes,
+            file_name=f"{file_date_str}_daily_work_log.csv",
+            mime="text/csv"
+        )
+        st.download_button(
+            "📄 Download as Word Document",
+            data=docx_bytes,
+            file_name=f"{file_date_str}_daily_work_log.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+    else:
+        st.download_button(
+            "📄 Download as Text List",
+            data=list_bytes,
+            file_name=f"{file_date_str}_daily_work_log.txt",
+            mime="text/plain"
+        )
+
+    st.divider()
+
     st.subheader("📧 Email This Work Log")
 
     default_subject = DEFAULT_SUBJECT_TEMPLATE.format(date_str=file_date_str)
@@ -89,6 +119,17 @@ with right_col:
     body_input = st.text_area("Body", value=default_body, height=100)
 
     if st.button("📧 Send Email with Attachments"):
+        if preview_mode == "Table":
+            attachments = [
+                (csv_bytes, "text", "csv", f"{file_date_str}_daily_work_log.csv"),
+                (docx_bytes, "application", "vnd.openxmlformats-officedocument.wordprocessingml.document",
+                 f"{file_date_str}_daily_work_log.docx"),
+            ]
+        else:
+            attachments = [
+                (list_bytes, "text", "plain", f"{file_date_str}_daily_work_log.txt"),
+            ]
+
         status, message = send_email_with_attachments(
             smtp_server=SMTP_SERVER,
             smtp_port=SMTP_PORT,
@@ -99,11 +140,7 @@ with right_col:
             cc=cc_input,
             subject=subject_input,
             body=body_input,
-            attachments=[
-                (csv_bytes, "text", "csv", f"{file_date_str}_daily_work_log.csv"),
-                (docx_bytes, "application", "vnd.openxmlformats-officedocument.wordprocessingml.document",
-                 f"{file_date_str}_daily_work_log.docx")
-            ]
+            attachments=attachments,
         )
         if status:
             st.success(message)
