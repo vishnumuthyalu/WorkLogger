@@ -16,3 +16,9 @@ def get_time_range():
 
     hours = [hour_label(h) for h in range(start_hour, end_hour + 1)]
     return start_hour, end_hour, hours
+
+def get_database_settings():
+    st.sidebar.header("Database Settings")
+    db_type = st.sidebar.selectbox("Select Database", ["sqlite", "postgres"], index=0)
+    return db_type
+

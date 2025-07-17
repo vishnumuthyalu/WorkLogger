@@ -6,6 +6,7 @@ from settings import get_time_range
 from log_utils import initialize_log, get_log_records
 from export_utils import convert_df_to_csv, convert_df_to_docx
 from email_utils import send_email_with_attachments
+from db_utils import init_db, save_log_to_db, get_all_logs
 
 st.set_page_config(page_title="WorkLogger", layout="wide")
 st.title("🗓️ WorkLogger v1.0")
@@ -146,3 +147,40 @@ with right_col:
             st.success(message)
         else:
             st.error(message)
+
+# Helper to build a single day summary text from the hourly logs
+def build_summary(records):
+    summary_lines = []
+    for r in records:
+        if r["Meeting"] == "Yes" or r["Tasks"].strip() or r["General Information"].strip():
+            summary_lines.append(f"{r['Time']}: Meeting: {r['Meeting']}")
+            if r['Meeting'] == 'Yes' and r['Meeting Information'].strip():
+                summary_lines.append(f"  Info: {r['Meeting Information']}")
+            if r['Tasks'].strip():
+                summary_lines.append(f"  Tasks: {r['Tasks']}")
+            if r['General Information'].strip():
+                summary_lines.append(f"  General: {r['General Information']}")
+            summary_lines.append("")
+    return "\n".join(summary_lines) if summary_lines else "No details logged."
+
+# Initialize DB
+init_db()
+
+with right_col:
+    st.divider()
+    st.header("💾 Save Work Log")
+    if st.button("Save to Database"):
+        summary_text = build_summary(get_log_records(log_key, hours))
+        save_log_to_db(log_date, summary_text)
+        st.success("✅ Log saved to database!")
+
+    st.divider()
+    st.header("📚 View Previous Logs")
+    logs_df = get_all_logs()
+    if not logs_df.empty:
+        st.dataframe(logs_df[['log_date', 'created_at']])
+        for _, row in logs_df.iterrows():
+            with st.expander(f"Logs for {row['log_date']} (saved {row['created_at']}):"):
+                st.text(row['log_summary'])
+    else:
+        st.info("No logs found yet.")

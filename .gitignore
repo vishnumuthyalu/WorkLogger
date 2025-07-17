@@ -1,5 +1,6 @@
-.streamlit/secrets.toml
+.streamlit/
 Log_tests/
 __pycache__/
 *.pyc
-
+database_test_run/
+work_logs.db
