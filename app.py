@@ -30,14 +30,29 @@ DEFAULT_TO = _email_cfg.get("default_to", "")
 DEFAULT_CC = _email_cfg.get("default_cc", "")
 DEFAULT_SUBJECT_TEMPLATE = _email_cfg.get("default_subject", "{date_str} Daily Work Log")
 
-# Date input
-log_date = st.date_input("📆 Select the date to log for", value=date.today())
-file_date_str = log_date.strftime('%A_%B_%d_%Y')
-current_time = datetime.now()
+left_col, right_col = st.columns([2, 1])
 
-st.write(f"**📅 Logging for:** `{file_date_str}` | **⏰ Current Time:** `{current_time.strftime('%I:%M %p')}`")
+with left_col:
+    # Date input
+    log_date = st.date_input("📆 Select the date to log for", value=date.today())
+    file_date_str = log_date.strftime('%A_%B_%d_%Y')
+    current_time = datetime.now()
+    st.write(f"**📅 Logging for:** `{file_date_str}` | **⏰ Current Time:** `{current_time.strftime('%I:%M %p')}`")
+    
+with right_col:
+    st.markdown("""
+    ### 👋 Welcome to WorkLogger!
+    This app helps you stay organized and productive by providing:
+    
+    ✅ **Daily Work Logging** – Record tasks, meetings, and notes  
+    ✅ **Preview Options** – View your logs as a table or a clean list  
+    ✅ **Download & Share** – Export your logs as CSV, Word, or Text  
+    ✅ **Email Integration** – Send your work log directly from the app  
+    ✅ **Database Storage** – Save logs for future reference  
+
+    """)
+
 st.divider()
-
 # Get time range & hours from settings.py
 start_hour, end_hour, hours = get_time_range()
 
