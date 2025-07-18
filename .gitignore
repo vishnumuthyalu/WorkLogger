@@ -2,5 +2,5 @@
 Log_tests/
 __pycache__/
 *.pyc
-database_test_run/
+run_db.py
 work_logs.db

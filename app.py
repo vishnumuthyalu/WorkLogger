@@ -8,6 +8,14 @@ from export_utils import convert_df_to_csv, convert_df_to_docx
 from email_utils import send_email_with_attachments
 from db_utils import init_db, save_log_to_db, get_all_logs
 
+# Add this import for clearing logs
+from sqlalchemy import text
+from db_utils import engine
+
+def clear_all_logs():
+    with engine.begin() as conn:
+        conn.execute(text("DELETE FROM work_logs"))
+
 st.set_page_config(page_title="WorkLogger", layout="wide")
 st.title("🗓️ WorkLogger v1.0")
 
@@ -173,6 +181,11 @@ with right_col:
         summary_text = build_summary(get_log_records(log_key, hours))
         save_log_to_db(log_date, summary_text)
         st.success("✅ Log saved to database!")
+
+    # Add Clear Logs button
+    if st.button("🗑️ Clear All Logs"):
+        clear_all_logs()
+        st.success("✅ All logs cleared from database!")
 
     st.divider()
     st.header("📚 View Previous Logs")
