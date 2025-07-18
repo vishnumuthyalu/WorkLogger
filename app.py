@@ -82,16 +82,54 @@ docx_io = convert_df_to_docx(log_df, log_date)
 docx_bytes = docx_io.getvalue()
 
 with right_col:
+    
+    st.header("📊 Log Preview")
     preview_mode = st.radio("Choose preview format:", options=["Table", "List"])
 
+
     if preview_mode == "Table":
-        st.subheader("📊 Log Preview (Table)")
+        st.subheader("Table")
         st.dataframe(log_df)
     else:
-        st.subheader("📋 Log Preview (List)")
+        st.subheader("List")
         st.text_area("Detailed Log List Preview", value=log_list_text, height=400)
 
-    st.divider()
+# Helper to build a single day summary text from the hourly logs
+def build_summary(records):
+    summary_lines = []
+    for r in records:
+        if r["Meeting"] == "Yes" or r["Tasks"].strip() or r["General Information"].strip():
+            summary_lines.append(f"{r['Time']}: Meeting: {r['Meeting']}")
+            if r['Meeting'] == 'Yes' and r['Meeting Information'].strip():
+                summary_lines.append(f"  Info: {r['Meeting Information']}")
+            if r['Tasks'].strip():
+                summary_lines.append(f"  Tasks: {r['Tasks']}")
+            if r['General Information'].strip():
+                summary_lines.append(f"  General: {r['General Information']}")
+            summary_lines.append("")
+    return "\n".join(summary_lines) if summary_lines else "No details logged."
+
+# Initialize DB
+st.divider()
+left_col, right_col = st.columns([2, 1])
+
+init_db()
+
+with left_col:
+    st.header("💾 Save Work Log")
+    if st.button("Save to Database"):
+        summary_text = build_summary(get_log_records(log_key, hours))
+        save_log_to_db(log_date, summary_text)
+        st.success("✅ Log saved to database!")
+    
+    
+
+    # Add Clear Logs button
+    if st.button("🗑️ Clear All Logs"):
+        clear_all_logs()
+        st.success("✅ All logs cleared from database!")
+   
+with right_col:   
     st.header("📥 Download & Share")
 
     if preview_mode == "Table":
@@ -114,8 +152,12 @@ with right_col:
             file_name=f"{file_date_str}_daily_work_log.txt",
             mime="text/plain"
         )
-
-    st.divider()
+        
+st.divider()
+left_col, right_col = st.columns([2, 1])
+        
+with left_col:
+    
 
     st.subheader("📧 Email This Work Log")
 
@@ -155,39 +197,7 @@ with right_col:
             st.success(message)
         else:
             st.error(message)
-
-# Helper to build a single day summary text from the hourly logs
-def build_summary(records):
-    summary_lines = []
-    for r in records:
-        if r["Meeting"] == "Yes" or r["Tasks"].strip() or r["General Information"].strip():
-            summary_lines.append(f"{r['Time']}: Meeting: {r['Meeting']}")
-            if r['Meeting'] == 'Yes' and r['Meeting Information'].strip():
-                summary_lines.append(f"  Info: {r['Meeting Information']}")
-            if r['Tasks'].strip():
-                summary_lines.append(f"  Tasks: {r['Tasks']}")
-            if r['General Information'].strip():
-                summary_lines.append(f"  General: {r['General Information']}")
-            summary_lines.append("")
-    return "\n".join(summary_lines) if summary_lines else "No details logged."
-
-# Initialize DB
-init_db()
-
 with right_col:
-    st.divider()
-    st.header("💾 Save Work Log")
-    if st.button("Save to Database"):
-        summary_text = build_summary(get_log_records(log_key, hours))
-        save_log_to_db(log_date, summary_text)
-        st.success("✅ Log saved to database!")
-
-    # Add Clear Logs button
-    if st.button("🗑️ Clear All Logs"):
-        clear_all_logs()
-        st.success("✅ All logs cleared from database!")
-
-    st.divider()
     st.header("📚 View Previous Logs")
     logs_df = get_all_logs()
     if not logs_df.empty:
@@ -196,4 +206,6 @@ with right_col:
             with st.expander(f"Logs for {row['log_date']} (saved {row['created_at']}):"):
                 st.text(row['log_summary'])
     else:
-        st.info("No logs found yet.")
+        st.info("No logs found yet.")        
+st.divider()
+
