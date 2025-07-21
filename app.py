@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, date
 
-from settings import get_time_range
+from settings import get_time_range, show_help_section
 from log_utils import initialize_log, get_log_records
 from export_utils import convert_df_to_csv, convert_df_to_docx
 from email_utils import send_email_with_attachments
@@ -19,6 +19,10 @@ def clear_all_logs():
 st.set_page_config(page_title="WorkLogger", layout="wide")
 st.title("🗓️ WorkLogger v1.0")
 
+# Store current time in session state for help system
+if 'current_time' not in st.session_state:
+    st.session_state.current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
 # Email config from secrets or defaults
 _email_cfg = st.secrets.get("email", {}) if hasattr(st, "secrets") else {}
 SMTP_SERVER = _email_cfg.get("server", "smtp.gmail.com")
@@ -33,11 +37,57 @@ DEFAULT_SUBJECT_TEMPLATE = _email_cfg.get("default_subject", "{date_str} Daily W
 left_col, right_col = st.columns([2, 1])
 
 with left_col:
-    # Date input
-    log_date = st.date_input("📆 Select the date to log for", value=date.today())
+    # Interactive Calendar Date Selection
+    st.subheader("📅 Select Date for Work Log")
+    
+    # Create columns for calendar and date info
+    cal_col1, cal_col2 = st.columns([2, 1])
+    
+    with cal_col1:
+        # Enhanced date input with calendar widget
+        today = date.today()
+        min_date = today - pd.Timedelta(days=365)  # Allow up to 1 year back
+        max_date = today + pd.Timedelta(days=30)   # Allow up to 30 days future
+        
+        log_date = st.date_input(
+            "📆 Choose your logging date:",
+            value=today,
+            min_value=min_date,
+            max_value=max_date,
+            help="Select any date within the last year or next 30 days"
+        )
+    
+    with cal_col2:
+        # Date information display
+        if log_date:
+            days_diff = (log_date - today).days
+            if days_diff == 0:
+                date_status = "📍 Today"
+            elif days_diff == -1:
+                date_status = "⏮️ Yesterday"
+            elif days_diff == 1:
+                date_status = "⏭️ Tomorrow"
+            elif days_diff < 0:
+                date_status = f"⏪ {abs(days_diff)} days ago"
+            else:
+                date_status = f"⏩ {days_diff} days ahead"
+            
+            st.metric("Date Status", date_status)
+    
     file_date_str = log_date.strftime('%A_%B_%d_%Y')
     current_time = datetime.now()
-    st.write(f"**📅 Logging for:** `{file_date_str}` | **⏰ Current Time:** `{current_time.strftime('%I:%M %p')}`")
+    
+    # Enhanced date display with more information
+    col1, col2 = st.columns(2)
+    with col1:
+        st.info(f"**📅 Logging for:** {log_date.strftime('%A, %B %d, %Y')}")
+    with col2:
+        st.info(f"**⏰ Current Time:** {current_time.strftime('%I:%M %p')}")
+    
+    # Add day of week and week number info
+    week_number = log_date.isocalendar()[1]
+    day_of_year = log_date.timetuple().tm_yday
+    st.caption(f"📊 Week {week_number} of {log_date.year} • Day {day_of_year} of year • {log_date.strftime('%B')} month")
     
 with right_col:
     st.markdown("""
@@ -55,6 +105,9 @@ with right_col:
 st.divider()
 # Get time range & hours from settings.py
 start_hour, end_hour, hours = get_time_range()
+
+# Add help section to sidebar
+show_help_section()
 
 left_col, right_col = st.columns([2, 1])
 
