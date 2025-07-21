@@ -149,66 +149,10 @@ CREATE TABLE work_logs (
     log_summary TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
-```
 
-## 🔍 Utility Scripts
 
-### Database Inspector (`run_db.py`)
-```bash
-python run_db.py
-```
-- View database tables
-- Inspect stored log entries
-- Useful for debugging
 
-## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
-## 📝 License
 
-This project is open source and available under the [MIT License](LICENSE).
 
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**Email not sending:**
-- Check SMTP credentials in secrets.toml
-- Ensure "Less secure app access" is enabled for Gmail
-- Use App Passwords for Gmail with 2FA
-
-**Database errors:**
-- Ensure write permissions in the application directory
-- Check if `work_logs.db` file is accessible
-
-**Time range errors:**
-- Ensure start hour is less than end hour
-- Use 24-hour format (0-23)
-
-## 📞 Support
-
-If you encounter any issues or have questions:
-- Create an issue on GitHub
-- Check the troubleshooting section above
-- Review the code documentation
-
-## 🎯 Future Enhancements
-
-- [ ] Calendar view integration
-- [ ] Task categorization and tagging
-- [ ] Time tracking with productivity metrics
-- [ ] Multi-user support
-- [ ] Advanced reporting and analytics
-- [ ] Mobile-responsive design improvements
-- [ ] Integration with popular calendar applications
-
----
-
-**Made with ❤️ using Streamlit**
-
-*Happy logging! 📝*
