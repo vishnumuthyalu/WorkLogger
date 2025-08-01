@@ -80,7 +80,7 @@ with left_col:
     # Enhanced date display with more information
     col1, col2 = st.columns(2)
     with col1:
-        st.info(f"**📅 LLLLLLogging for:** {log_date.strftime('%A, %B %d, %Y')}")
+        st.info(f"**📅 Logging for:** {log_date.strftime('%A, %B %d, %Y')}")
     with col2:
         st.info(f"**⏰ Current Time:** {current_time.strftime('%I:%M %p')}")
     
