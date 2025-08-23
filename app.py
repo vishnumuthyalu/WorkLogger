@@ -5,7 +5,7 @@ from datetime import datetime, date
 from settings import get_time_range, show_help_section
 from log_utils import initialize_log, get_log_records
 from export_utils import convert_df_to_csv, convert_df_to_docx
-from email_utils import send_email_with_attachments
+from email_utils import send_email_with_attachments, show_email_configuration_form, send_email_with_user_credentials
 from db_utils import init_db, save_log_to_db, get_all_logs
 from timezone_utils import get_current_time_in_timezone, format_time_with_timezone, get_timezone_display_name
 
@@ -227,46 +227,75 @@ st.divider()
 left_col, right_col = st.columns([2, 1])
         
 with left_col:
-    
-
     st.subheader("📧 Email This Work Log")
+    
+    # Show email configuration form
+    email_ready, user_email_config = show_email_configuration_form()
+    
+    # Email form - only show if email is configured or user provided credentials
+    if email_ready:
+        default_subject = DEFAULT_SUBJECT_TEMPLATE.format(date_str=file_date_str)
+        
+        # Use different defaults based on configuration source
+        if user_email_config:  # User provided their own config
+            default_to = user_email_config['user']  # Default to their own email
+            default_cc = ""
+            sender_name = user_email_config['sender_name']
+        else:  # Using app secrets
+            default_to = DEFAULT_TO
+            default_cc = DEFAULT_CC
+            sender_name = SENDER_NAME
+            
+        to_input = st.text_input("To", value=default_to, placeholder="recipient@example.com")
+        cc_input = st.text_input("CC", value=default_cc, placeholder="cc1@example.com; cc2@example.com")
+        subject_input = st.text_input("Subject", value=default_subject)
+        from_display = st.text_input("From Name", value=sender_name)
+        default_body = f"Please find attached the work log for {log_date.strftime('%A, %B %d, %Y')}."
+        body_input = st.text_area("Body", value=default_body, height=100)
 
-    default_subject = DEFAULT_SUBJECT_TEMPLATE.format(date_str=file_date_str)
-    to_input = st.text_input("To", value=DEFAULT_TO, placeholder="recipient@example.com")
-    cc_input = st.text_input("CC", value=DEFAULT_CC, placeholder="cc1@example.com; cc2@example.com")
-    subject_input = st.text_input("Subject", value=default_subject)
-    from_display = st.text_input("From Name", value=SENDER_NAME)
-    default_body = f"Please find attached the work log for {log_date.strftime('%A, %B %d, %Y')}."
-    body_input = st.text_area("Body", value=default_body, height=100)
+        if st.button("📧 Send Email with Attachments"):
+            if not to_input.strip():
+                st.error("Please provide at least one recipient email address.")
+            else:
+                if preview_mode == "Table":
+                    attachments = [
+                        (csv_bytes, "text", "csv", f"{file_date_str}_daily_work_log.csv"),
+                        (docx_bytes, "application", "vnd.openxmlformats-officedocument.wordprocessingml.document",
+                         f"{file_date_str}_daily_work_log.docx"),
+                    ]
+                else:
+                    attachments = [
+                        (list_bytes, "text", "plain", f"{file_date_str}_daily_work_log.txt"),
+                    ]
 
-    if st.button("📧 Send Email with Attachments"):
-        if preview_mode == "Table":
-            attachments = [
-                (csv_bytes, "text", "csv", f"{file_date_str}_daily_work_log.csv"),
-                (docx_bytes, "application", "vnd.openxmlformats-officedocument.wordprocessingml.document",
-                 f"{file_date_str}_daily_work_log.docx"),
-            ]
-        else:
-            attachments = [
-                (list_bytes, "text", "plain", f"{file_date_str}_daily_work_log.txt"),
-            ]
-
-        status, message = send_email_with_attachments(
-            smtp_server=SMTP_SERVER,
-            smtp_port=SMTP_PORT,
-            smtp_user=SMTP_USER,
-            smtp_password=SMTP_PASSWORD,
-            from_name=from_display,
-            to=to_input,
-            cc=cc_input,
-            subject=subject_input,
-            body=body_input,
-            attachments=attachments,
-        )
-        if status:
-            st.success(message)
-        else:
-            st.error(message)
+                # Use appropriate sending method based on configuration
+                if user_email_config:
+                    status, message = send_email_with_user_credentials(
+                        user_config=user_email_config,
+                        to=to_input,
+                        cc=cc_input,
+                        subject=subject_input,
+                        body=body_input,
+                        attachments=attachments,
+                    )
+                else:
+                    status, message = send_email_with_attachments(
+                        smtp_server=SMTP_SERVER,
+                        smtp_port=SMTP_PORT,
+                        smtp_user=SMTP_USER,
+                        smtp_password=SMTP_PASSWORD,
+                        from_name=from_display,
+                        to=to_input,
+                        cc=cc_input,
+                        subject=subject_input,
+                        body=body_input,
+                        attachments=attachments,
+                    )
+                
+                if status:
+                    st.success(message)
+                else:
+                    st.error(message)
 with right_col:
     st.header("📚 View Previous Logs")
     logs_df = get_all_logs()
