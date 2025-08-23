@@ -38,7 +38,6 @@ def send_email_with_attachments(smtp_server, smtp_port, smtp_user, smtp_password
 
 def show_email_configuration_form():
     """Show form for users to input their own email credentials for testing"""
-    st.subheader("📧 Email Configuration for Testing")
     
     # Check if secrets are configured
     email_configured = False
@@ -53,6 +52,9 @@ def show_email_configuration_form():
         st.success("✅ Email is pre-configured by the app administrator.")
         return True, {}
     else:
+        # Add section break before configuration form
+        st.divider()
+        st.subheader("📧 Email Configuration for Testing")
         st.warning("⚠️ Email not configured by app administrator. You can test the email functionality by providing your own credentials below.")
         
         with st.expander("📧 Email Credentials (For Testing Only)", expanded=False):
