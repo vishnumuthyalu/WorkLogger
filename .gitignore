@@ -1,4 +1,9 @@
-.streamlit/
+# Streamlit secrets (keep private)
+.streamlit/secrets.toml
+
+# But allow config file to be deployed
+# .streamlit/config.toml should be committed
+
 Log_tests/
 __pycache__/
 *.pyc
