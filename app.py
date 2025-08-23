@@ -7,6 +7,7 @@ from log_utils import initialize_log, get_log_records
 from export_utils import convert_df_to_csv, convert_df_to_docx
 from email_utils import send_email_with_attachments
 from db_utils import init_db, save_log_to_db, get_all_logs
+from timezone_utils import get_current_time_in_timezone, format_time_with_timezone, get_timezone_display_name
 
 # Add this import for clearing logs
 from sqlalchemy import text
@@ -19,9 +20,9 @@ def clear_all_logs():
 st.set_page_config(page_title="WorkLogger", layout="wide")
 st.title("🗓️ WorkLogger v1.0")
 
-# Store current time in session state for help system
+# Store current time in session state for help system (timezone-aware)
 if 'current_time' not in st.session_state:
-    st.session_state.current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    st.session_state.current_time = format_time_with_timezone()
 
 # Email config from secrets or defaults
 _email_cfg = st.secrets.get("email", {}) if hasattr(st, "secrets") else {}
@@ -75,14 +76,15 @@ with left_col:
             st.metric("Date Status", date_status)
     
     file_date_str = log_date.strftime('%A_%B_%d_%Y')
-    current_time = datetime.now()
+    current_time = get_current_time_in_timezone()
     
     # Enhanced date display with more information
     col1, col2 = st.columns(2)
     with col1:
         st.info(f"**📅 Logging for:** {log_date.strftime('%A, %B %d, %Y')}")
     with col2:
-        st.info(f"**⏰ Current Time:** {current_time.strftime('%I:%M %p')}")
+        timezone_info = get_timezone_display_name()
+        st.info(f"**⏰ Current Time:** {current_time.strftime('%I:%M %p')} ({timezone_info})")
     
     # Add day of week and week number info
     week_number = log_date.isocalendar()[1]
