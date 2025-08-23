@@ -72,6 +72,7 @@ I designed this application with a logical, intuitive workflow that mirrors real
 
 I implemented a robust SMTP integration with comprehensive error handling and security considerations:
 
+**For Administrators (App Secrets):**
 ```toml
 # .streamlit/secrets.toml - Secure configuration management
 [email]
@@ -84,6 +85,13 @@ default_to = "recipient@example.com"
 default_cc = ""
 default_subject = "{date_str} Daily Work Log"  # Dynamic templating
 ```
+
+**For End Users (Testing Mode):**
+- ✅ **Guest-Friendly Email Testing** - Users can provide their own SMTP credentials for testing
+- ✅ **Gmail Integration Guide** - Built-in instructions for setting up App Passwords
+- ✅ **Connection Testing** - Real-time SMTP connection validation before sending
+- ✅ **Security First** - Credentials are session-only and never stored
+- ✅ **Multiple Provider Support** - Gmail, Outlook, and custom SMTP servers
 
 ## 📁 System Architecture
 
